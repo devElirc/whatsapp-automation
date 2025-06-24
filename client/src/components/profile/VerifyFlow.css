@@ -1,0 +1,120 @@
+/* VerifyFlow.css */
+
+
+.verify-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+
+
+.tela {
+  display: none;
+  background-color: white;
+  border: 1px solid black;
+  border-radius: 20px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+.tela.ativa {
+  display: block;
+}
+
+.tela-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+input,
+select {
+  padding: 1rem;
+  border-radius: 50px;
+  font-size: 1.1rem;
+  border: 1px solid black;
+  width: 100%;
+}
+
+button {
+  background-color: #25d366;
+  padding: 1rem;
+  border-radius: 50px;
+  font-size: 1.1rem;
+  border: 1px solid black;
+  cursor: pointer;
+  color: black;
+  width: 100%;
+}
+
+.code-btn,
+.success-btn,
+.pix-btn {
+  background-color: #008069;
+  color: white;
+  border: none;
+}
+
+#codigo-display span {
+  display: inline-block;
+  padding: 8px 12px;
+  margin: 2px;
+  border: 1px solid black;
+  border-radius: 8px;
+  background-color: white;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.spinner {
+  margin: 1rem auto;
+  width: 90px;
+  height: 90px;
+  background-image: url('https://i.pinimg.com/originals/fa/87/77/fa87774590186b287a5338d7c87afc0c.gif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 50%;
+}
+
+footer {
+  position: fixed;
+  bottom: 10px;
+  width: 100%;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #0A1014;
+}
+
+@media (max-width: 480px) {
+  .tela {
+    padding: 1.5rem 1rem;
+  }
+
+  input,
+  button,
+  select {
+    padding: 0.9rem;
+    font-size: 1rem;
+  }
+
+  h2 {
+    font-size: 1.4rem;
+  }
+
+  footer {
+    font-size: 0.8rem;
+  }
+}
