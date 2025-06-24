@@ -38,8 +38,7 @@ function Home() {
   return (
     <>
       <Starfield />
-      <main className="container-fluid py-5 px-3 position-relative" style={{ zIndex: 1, marginx: '20%' }}>
-
+      <main className="container-fluid py-5 px-3 position-relative" style={{ zIndex: 1, width: '60%' }}>
         <div className="mx-300px bg-white bg-opacity-90 rounded p-5 shadow-lg  style={{ maxWidth: '70%' }}">
           <div className="mx-auto bg-white bg-opacity-90 rounded p-5 shadow-lg ">
             <header className="mb-5 text-center">

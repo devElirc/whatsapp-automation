@@ -1,0 +1,125 @@
+{
+  "name": "Verify",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "phone",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0d2b71a2-9a76-45f1-b764-2a19087eac60",
+      "name": "Webhook",
+      "webhookId": "337579f7-871f-4ebb-8b6c-f2be84d7c5da"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://local.adspower.net:50325/api/v1/user/create",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n    \"name\": \"whatsapp_{{ $node['Webhook'].json['body']['phone'] }}\",\n    \"group_id\": \"6592143\",\n    \"platform\": \"\",\n    \"username\": \"\",\n    \"password\": \"\",\n    \"cookie\": \"\",\n    \"repeat_config\": [],\n    \"tabs\": [],\n    \"user_proxy_config\": {\n        \"proxy_soft\": \"other\",\n        \"proxy_type\": \"socks5\",\n        \"proxy_host\": \"geo.g-w.info\",\n        \"proxy_port\": \"10800\",\n        \"proxy_user\": \"9obLCuIUEK8B7EUc\",\n        \"proxy_password\": \"0SYBFfVZ7A372u46\"\n    },\n    \"fingerprint_config\": {\n        \"automatic_timezone\": 1,\n        \"language\": [\n            \"en-US\",\n            \"en\"\n        ],\n        \"flash\": \"block\",\n        \"fonts\": [\n            \"all\"\n        ],\n        \"webrtc\": \"disabled\",\n        \"ua\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36\"\n    }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "ea3c1b84-e5a6-4f78-9141-83efbe010717",
+      "name": "Create AdsPower Profile",
+      "retryOnFail": false,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "url": "=http://local.adspower.net:50325/api/v1/browser/start?user_id={{ $node[\"Create AdsPower Profile\"].json[\"data\"][\"id\"]}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "2dd4e9ec-126f-4757-ad69-0c470b69e03f",
+      "name": "Start Browser"
+    },
+    {
+      "parameters": {
+        "command": "=node f:\\Node\\whatsapp-automation\\src\\verify.js {{$json[\"data\"][\"ws\"][\"puppeteer\"]}} {{$node[\"Webhook\"].json[\"body\"][\"phone\"]}}\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ],
+      "id": "206df85b-7c87-4684-96b0-8ca5a54d0679",
+      "name": "Execute Command"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Create AdsPower Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create AdsPower Profile": {
+      "main": [
+        [
+          {
+            "node": "Start Browser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Browser": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "06bc020f-e9c7-4e42-a221-b69cf9c125a7",
+  "meta": {
+    "instanceId": "7d87d8e6a12e933dc8f3cb9b69f8622e77933f53dd9d6e8b16e2a48df7346034"
+  },
+  "id": "zm8KHWzoqlby5Ca4",
+  "tags": []
+}

