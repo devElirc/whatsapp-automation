@@ -7,7 +7,10 @@ const FormData = require('form-data');
 const fs = require('fs');
 
 const app = express();
+
 app.use(cors());
+app.use(express.json()); // Parse JSON request bodies
+
 const upload = multer({ dest: 'uploads/' });
 
 app.use(express.static(path.join(__dirname, 'client/build')));
@@ -16,8 +19,47 @@ const accounts = [
   { phone: '+1234567890', status: 'Online', profileId: 'adspower_123' },
 ];
 
+const pins = {}; // temporary store: { [phone]: pin }
+
 app.get('/api/accounts', (req, res) => {
   res.json(accounts);
+});
+
+// Endpoint to handle phone verification
+app.post("/api/phone", async (req, res) => {
+  const { phone } = req.body;
+
+  if (!phone) {
+    return res.status(400).json({ error: 'Phone number is required' });
+  }
+
+  try {
+    const response = await axios.post('http://localhost:5678/webhook-test/phone', { phone });
+    const data = response.data;
+
+    // Return n8n webhook response back to frontend
+    res.json(data);
+  } catch (error) {
+    console.error("Error calling n8n:", error.message);
+    res.status(500).json({ error: "Failed to generate code" });
+  }
+});
+
+
+app.post('/api/pin', (req, res) => {
+  const { phone, pin } = req.body;
+  pins[phone] = pin;
+  console.log(`Saved PIN for ${phone}: ${pin}`);
+  res.sendStatus(200);
+});
+
+app.get('/api/get-pin', (req, res) => {
+  const phone = req.query.phone;
+  if (pins[phone]) {
+    res.json({ phone, pin: pins[phone] });
+  } else {
+    res.status(404).json({ error: "PIN not found yet" });
+  }
 });
 
 app.post('/api/upload', upload.single('csv'), async (req, res) => {

