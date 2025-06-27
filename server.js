@@ -20,7 +20,7 @@ const accounts = [
 ];
 
 const pins = {}; // temporary store: { [phone]: pin }
-
+let userIdList = [];
 app.get('/api/accounts', (req, res) => {
   res.json(accounts);
 });
@@ -28,12 +28,15 @@ app.get('/api/accounts', (req, res) => {
 // Endpoint to handle phone verification
 app.post("/api/phone", async (req, res) => {
   const { phone } = req.body;
+  const phoneNumber = req.body.phone;
+  pins[phoneNumber] = '';
 
   if (!phone) {
     return res.status(400).json({ error: 'Phone number is required' });
   }
 
   try {
+
     const response = await axios.post('http://localhost:5678/webhook-test/phone', { phone });
     const data = response.data;
 
@@ -44,6 +47,28 @@ app.post("/api/phone", async (req, res) => {
     res.status(500).json({ error: "Failed to generate code" });
   }
 });
+
+
+app.post("/api/receive-profile", async (req, res) => {
+  const { profiles } = req.body;
+
+  if (!profiles) {
+    return res.status(400).json({ error: 'Profile not found' });
+  }
+
+  try {
+    // Extract user_id list from the profiles array
+    userIdList = profiles.map(profile => profile.user_id);
+
+    // Return the list of user_ids
+    res.json({ user_ids: userIdList });
+    console.log("user_list", userIdList);
+  } catch (error) {
+    console.error("Error processing profiles:", error.message);
+    res.status(500).json({ error: "Failed to process profiles" });
+  }
+});
+
 
 
 app.post('/api/pin', (req, res) => {
@@ -70,6 +95,14 @@ app.post('/api/upload', upload.single('csv'), async (req, res) => {
       return res.status(400).json({ error: 'CSV file and message are required.' });
     }
 
+    // const results = [];
+    // fs.createReadStream(req.file.path)
+    //   .pipe(csv())
+    //   .on('data', (row) => results.push(row.phone))
+    //   .on('end', () => {
+    //     res.json({ phones: results });
+    //   });
+
     const formData = new FormData();
     formData.append('data', fs.createReadStream(req.file.path), req.file.originalname); // IMPORTANT: 'data' matches n8n
     formData.append('message', req.body.message);
@@ -89,6 +122,20 @@ app.post('/api/upload', upload.single('csv'), async (req, res) => {
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
 });
+
+// setInterval(async () => {
+//   try {
+//     const response = await axios.get('http://localhost:5678/webhook-test/get-profiles');
+
+//     console.log('Fetched profiles:', response.data);
+
+//     // You can process the data or store it somewhere
+//     // e.g., save to file, memory, database, etc.
+//   } catch (error) {
+//     console.error("Error calling n8n:", error.message);
+//   }
+// }, 3000);
+
 
 const PORT = process.env.PORT || 3000; // Can change to 3001 or another port if needed
 app.listen(PORT, () => {

@@ -30,13 +30,13 @@ const fs = require('fs');
       });
 
 
-      await page.waitForTimeout(8000); // Let chat load fully
+      await page.waitForTimeout(5000); // Let chat load fully
 
   // Updated selector (works with different languages like Portuguese)
         const inputSelector = 'div[contenteditable="true"][role="textbox"][aria-label*="mensagem"]';
 
         console.log("Waiting for message input...");
-        await page.waitForSelector(inputSelector, { timeout: 30000 });
+        await page.waitForSelector(inputSelector, { timeout: 4000 });
         await page.click(inputSelector); // focus on input
 
         console.log("Typing message...");

@@ -1,0 +1,240 @@
+{
+  "name": "Send Message",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "upload-csv",
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        0
+      ],
+      "id": "dc7d1b9c-20c9-4f96-87cc-54c169818ab7",
+      "name": "Webhook",
+      "webhookId": "fd137f5e-5697-4c4e-8bc1-89491472f4ab"
+    },
+    {
+      "parameters": {
+        "binaryPropertyName": "data0",
+        "options": {
+          "headerRow": true
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        40,
+        0
+      ],
+      "id": "d41ade08-24c5-4d58-8ee0-bc06055cf2f4",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "url": "=http://local.adspower.net:50325/api/v1/browser/start?user_id={{ $json.profile_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        -20
+      ],
+      "id": "38c66407-d7e0-4006-b5f5-7390084474e4",
+      "name": "Start Browser"
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=node f:\\\\Node\\\\whatsapp-automation\\\\src\\\\playwright-script.js \"{{ $json['data']['ws']['puppeteer'] }}\" \"{{ $node['Code'].json['payload'].replace(/\"/g, '\\\\\"') }}\"\n\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        -20
+      ],
+      "id": "a968b5f5-ca97-4504-8179-e824e19a1535",
+      "name": "Execute Command",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Get WhatsApp profiles from AdsPower\nconst profiles = $items(\"Get Profiles\")[0].json.data.list;\n\n// 2. Get leads from your parsed CSV node\nconst leads = $items(\"Extract from File\");\n\n// 3. Get the message template from Webhook node\nconst template = $node[\"Webhook\"].json[\"body\"][\"message\"];\n\n// 4. Function to apply the template dynamically\nfunction renderMessage(lead, tpl) {\n  return tpl.replace(/{(.*?)}/g, (_, key) => lead[key.trim()] || \"\");\n}\n\n// 5. Initialize profile assignments\nconst assignments = profiles.map(p => ({\n  profile: p,\n  leads: []\n}));\n\n// 6. Assign leads randomly & apply message template\nfor (const leadNode of leads) {\n  const lead = leadNode.json;\n  lead.message = renderMessage(lead, template);\n\n  const random = Math.floor(Math.random() * assignments.length);\n  assignments[random].leads.push(lead);\n}\n\n// 7. Return final assignments\nreturn assignments\n  .filter(a => a.leads.length > 0)\n  .map(a => ({\n    json: {\n      profile_id: a.profile.user_id,\n      profile_name: a.profile.name,\n      ws: a.profile.ws, // optional\n      leads: a.leads\n    }\n  }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        360,
+        0
+      ],
+      "id": "4a9df721-1bc3-4fc0-a8fd-c7bc07a8e502",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "url": "http://local.adspower.net:50325/api/v1/user/list?page=1&page_size=100",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ],
+      "id": "87bf0df5-a375-4cac-a018-b190f799126b",
+      "name": "Get Profiles"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  const leads = item.json.leads || [];\n  const payload = leads.map(lead => ({\n    phone: lead.phone,\n    message: lead.message,\n  }));\n\n  return {\n    json: {\n      profile_id: item.json.profile_id,\n      payload: JSON.stringify(payload),  // This is a valid JSON string\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        0
+      ],
+      "id": "bbc32ea4-116f-41bb-a7b5-4199622d2a38",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        660,
+        0
+      ],
+      "id": "4bda8575-5a61-49d0-a954-4ebe3b61c847",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        800,
+        120
+      ],
+      "id": "2ff83747-c82b-4bab-9f55-c418009c62c0"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Get Profiles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Browser": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Profiles": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Start Browser",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "da57f87f-7655-4d45-a65b-95e2b428c294",
+  "meta": {
+    "instanceId": "7d87d8e6a12e933dc8f3cb9b69f8622e77933f53dd9d6e8b16e2a48df7346034"
+  },
+  "id": "gpQ0r5gtIDU2Ixl6",
+  "tags": []
+}
