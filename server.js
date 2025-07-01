@@ -37,7 +37,8 @@ app.post("/api/phone", async (req, res) => {
 
   try {
 
-    const response = await axios.post('http://localhost:5678/webhook-test/phone', { phone });
+    const response = await axios.post('http://144.172.114.124:5678/webhook-test/phone', { phone });
+    // const response = await axios.post('http://localhost:5678/webhook-test/phone', { phone });
     const data = response.data;
 
     // Return n8n webhook response back to frontend
@@ -107,7 +108,8 @@ app.post('/api/upload', upload.single('csv'), async (req, res) => {
     formData.append('data', fs.createReadStream(req.file.path), req.file.originalname); // IMPORTANT: 'data' matches n8n
     formData.append('message', req.body.message);
 
-    await axios.post('http://localhost:5678/webhook-test/upload-csv', formData, {
+    await axios.post('http://144.172.114.124:5678/webhook-test/upload-csv', formData, {
+    // await axios.post('http://localhost:5678/webhook-test/upload-csv', formData, {
       headers: formData.getHeaders(),
     });
 

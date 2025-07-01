@@ -30,25 +30,25 @@ const fs = require('fs');
       });
 
 
-      await page.waitForTimeout(5000); // Let chat load fully
+      await page.waitForTimeout(8000); // Let chat load fully
 
   // Updated selector (works with different languages like Portuguese)
         const inputSelector = 'div[contenteditable="true"][role="textbox"][aria-label*="mensagem"]';
 
         console.log("Waiting for message input...");
-        await page.waitForSelector(inputSelector, { timeout: 4000 });
+        await page.waitForSelector(inputSelector, { timeout: 8000 });
         await page.click(inputSelector); // focus on input
 
         console.log("Typing message...");
         await page.type(inputSelector, message, { delay: 50 });
         await page.keyboard.press('Enter');
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(4000);
 
         console.log(`✅ Message sent to ${phoneNumber}`);
         process.exit(0);
     } catch (err) {
       console.error(`❌ Failed to send to ${phone}: ${err.message}`);
-      await page.screenshot({ path: `error-${phone}.png` });
+      // await page.screenshot({ path: `error-${phone}.png` });
     }
   }
 
