@@ -8,7 +8,7 @@ import Starfield from './Starfield';
 
 function Home() {
   const [file, setFile] = useState(null);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("e.g., Hello {name} {order_id} {custom} Click: https://example.com");
   const [accounts, setAccounts] = useState([]);
   const [status, setStatus] = useState('');
   const [campaigns, setCampaigns] = useState([]);
@@ -26,7 +26,8 @@ function Home() {
     formData.append('message', message);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/upload', formData, {
+         const response = await axios.post('http://144.172.114.124:4000/api/upload', formData, {
+      // const response = await axios.post('http://localhost:4000/api/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setStatus(response.data.message || 'Upload successful! Messages are being processed.');
@@ -144,7 +145,7 @@ function Home() {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     rows="6"
-                    placeholder="e.g., Hello {name} Click: https://example.com"
+                    placeholder="e.g., Hello {name} {order_id} {custom} Click: https://example.com"
                     required
                   />
                 </div>

